@@ -2,14 +2,13 @@ Require Import Coq.Program.Equality.
 Require Import List ZArith.
 Require Import Arith.
 Require Import Psatz.
-Require Import Omega.
+Require Import Lia.
 Import ListNotations.
 Open Scope nat_scope.
 Close Scope Z_scope.
 Require Import String.
 Open Scope string_scope.
 Require Import While Tactics.
-
 
 (** ** Sémantique à grands pas du langage While  *)
 
@@ -29,27 +28,30 @@ l'environnement [env] conduit à l'environnement [env']." *)
 
 Inductive bigstep : state -> stmt -> state -> Prop :=
 | bigstep_skip: forall env, bigstep env Skip env
-| bigstep_assign: forall env x e, bigstep env (Assign x e) (update_state env x (eval_expr env e))
+| bigstep_assign:
+  forall env x e,
+  bigstep env (Assign x e) (update_state env x (eval_expr env e))
 | bigstep_seq:
-    forall env s1 env' s2 env'',
-      bigstep env s1 env' ->
-      bigstep env' s2 env'' ->
-      bigstep env (Seq s1 s2) env''
+  forall env s1 env' s2 env'',
+  bigstep env s1 env'
+  -> bigstep env' s2 env''
+  -> bigstep env (Seq s1 s2) env''
 | bigstep_if_true:
-    forall env c s1 s2 env',
-      eval_condP env c ->
-      bigstep env s1 env' ->
-      bigstep env (If c s1 s2) env'
+  forall env c s1 s2 env',
+  eval_condP env c
+  -> bigstep env s1 env'
+  -> bigstep env (If c s1 s2) env'
 (* à compléter *)
 .
-
 
 (** * 2 - Quelques détails sur des tactiques utiles en Coq  *)
 
 Example test_bigstep_seq_assign:
   forall env,
-    bigstep env (Seq (Assign "x" (Const 1)) (Assign "y" (Const 2)))
-              (update_state (update_state env "x" 1) "y" 2).
+  bigstep
+    env
+    (Seq (Assign "x" (Const 1)) (Assign "y" (Const 2)))
+    (update_state (update_state env "x" 1) "y" 2).
 Proof.
   intros env.
   eapply bigstep_seq.
@@ -71,10 +73,15 @@ Qed.
 
 Lemma test_bigstep_while:
   forall env,
-    env "x" = 2 ->
-    bigstep env (While (Not (Eq (Var "x") (Const 0))) (fun _ => True)
-                       (Assign "x" (Sub (Var "x") (Const 1)))
-                ) (update_state (update_state env "x" 1) "x" 0).
+  env "x" = 2
+  -> bigstep
+      env
+      (While
+        (Not (Eq (Var "x") (Const 0)))
+        (fun _ => True)
+        (Assign "x" (Sub (Var "x") (Const 1)))
+      )
+      (update_state (update_state env "x" 1) "x" 0).
 Proof.
   (* La preuve suivante devrait être correcte *)
   (* intros env EQ.

@@ -2,7 +2,7 @@ Require Import Coq.Program.Equality.
 Require Import List ZArith.
 Require Import Arith.
 Require Import Psatz.
-Require Import Omega.
+Require Import Lia.
 Import ListNotations.
 Close Scope nat_scope.
 Open Scope Z_scope.
@@ -78,7 +78,9 @@ Compute
   let s := fun _ => 0 in
   let s := update_state s "x" 12 in
   let s := update_state s "y" 5 in
-  let e := Mul (Const 3) (Add (Var "x") (Mul (Const 12) (Sub (Var "x") (Var "y")))) in
+  let e :=
+    Mul (Const 3) (Add (Var "x") (Mul (Const 12) (Sub (Var "x") (Var "y"))))
+  in
   eval_expr s e.
 
 Fixpoint eval_cond (env: state) (c: cond) : bool :=
@@ -96,23 +98,19 @@ Fixpoint eval_condP (env: state) (c: cond) : Prop :=
   end.
 
 Lemma eval_cond_true:
-  forall env c,
-    eval_condP env c <->
-    eval_cond env c = true.
+  forall env c, eval_condP env c <-> eval_cond env c = true.
 Proof.
 Admitted.
 
 Lemma eval_cond_false:
-  forall env c,
-    ~ eval_condP env c <->
-    eval_cond env c = false.
+  forall env c, ~ eval_condP env c <-> eval_cond env c = false.
 Proof.
 Admitted.
 
 Lemma eval_cond_dec:
   forall env c, {eval_condP env c} + {~ eval_condP env c}.
 Proof.
-Admitted.                       (* à remplacer par Defined. quand vous aurez fini. *)
+Admitted.                  (* à remplacer par Defined. quand vous aurez fini. *)
 (* Defined permet de rendre les définitions *transparentes*, et pourront donc
 être évaluées par la commande Compute. *)
 
@@ -120,16 +118,15 @@ Compute
   let s := fun _ => 0 in
   let s := update_state s "x" 12 in
   let s := update_state s "y" 5 in
-  let e := Mul (Const 3) (Add (Var "x") (Mul (Const 12) (Sub (Var "x") (Var "y")))) in
+  let e :=
+    Mul (Const 3) (Add (Var "x") (Mul (Const 12) (Sub (Var "x") (Var "y"))))
+  in
   eval_cond_dec s (Eq e (Const 288)).
-
-
 
 Inductive stmt  :=
 | Skip
 | Assign (v: var) (e: expr)
 | Seq (s1 s2: stmt)
 | If (c: cond) (s1 s2: stmt)
-| While (c: cond) (I: state -> Prop) (s: stmt)
-.
+| While (c: cond) (I: state -> Prop) (s: stmt).
 
