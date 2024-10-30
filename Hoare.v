@@ -21,7 +21,8 @@ Definition valid_hoare_triple (P: pred) (s: stmt) (Q: pred) : Prop :=
 
 Theorem hoare_skip: forall P, valid_hoare_triple P Skip P.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. inv H0. apply H.
+Qed.
 
 (* Règle [SÉQUENCE] dans le sujet *)
 Theorem hoare_seq:
@@ -30,7 +31,12 @@ Theorem hoare_seq:
   -> valid_hoare_triple Q s2 R
   -> valid_hoare_triple P (Seq s1 s2) R.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. inv H2. eapply H0.
+  - eapply H.
+    * apply H1.
+    * apply H6.
+  - apply H8.
+Qed.
 
 (* Règle [CONDITION]. *)
 Theorem hoare_if:
@@ -39,7 +45,18 @@ Theorem hoare_if:
   -> valid_hoare_triple (fun env => P env /\ ~ eval_condP env c) s2 Q
   -> valid_hoare_triple P (If c s1 s2) Q.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. inv H2.
+  - eapply H.
+    * split.
+      + apply H1.
+      + apply H8.
+    * apply H9.
+  - eapply H0.
+    * split.
+      + apply H1.
+      + apply H8.
+    * apply H9.
+Qed.
 
 (* Règle [AFFECTATION]. On utilise [update_env] pour décrire l'effet de P[x <- E]. *)
 Theorem hoare_assign:
@@ -47,7 +64,8 @@ Theorem hoare_assign:
   valid_hoare_triple
     (fun env => P (update_state env x (eval_expr env e))) (Assign x e) P.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. inv H0. apply H.
+Qed.
 
 
 (* Règle [STRENGTHEN]. *)
@@ -57,7 +75,10 @@ Theorem hoare_strengthen_pre:
   -> (forall env, P' env -> P env)
   -> valid_hoare_triple P' s Q.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. eapply H.
+  - apply H0. apply H1.
+  - apply H2.
+Qed.
 
 (* Règle [WEAKEN]. *)
 Theorem hoare_weaken_post:
@@ -66,7 +87,10 @@ Theorem hoare_weaken_post:
   -> (forall env, Q env -> Q' env)
   -> valid_hoare_triple P s Q'.
 Proof.
-Admitted.
+  unfold valid_hoare_triple. intros. eapply H0. eapply H.
+  - apply H1.
+  - apply H2.
+Qed.
 
 (* Règle [WHILE]. *)
 Theorem hoare_while:
@@ -75,7 +99,21 @@ Theorem hoare_while:
    -> valid_hoare_triple
         P (While c I s) (fun env => P env /\ ~ eval_condP env c).
 Proof.
-Admitted.
+  unfold valid_hoare_triple.
+  intros.
+  dependent induction H1.
+  - split.
+    * apply H0.
+    * apply H1.
+  - eapply IHbigstep2.
+    * apply H.
+    * eapply H.
+      + split. 
+        -- apply H0.
+        -- apply H1.
+      + apply H1_.
+    * reflexivity.
+Qed.
 
 (** ** Question 3.2  *)
 Lemma hoare_while':
@@ -85,7 +123,13 @@ Lemma hoare_while':
   -> (forall env, I env /\ ~eval_condP env c -> Q env)
   -> valid_hoare_triple P (While c I s) Q.
 Proof.
-Admitted.
+  intros.
+  eapply hoare_weaken_post.
+  - eapply hoare_strengthen_pre.
+    + eapply hoare_while. apply H.
+    + apply H0.
+  - apply H1.
+Qed.     
 
 Open Scope Z_scope.
 
@@ -102,7 +146,6 @@ Definition factorielle n :=
     ).
 
 (* Cette preuve devrait passer *)
-(*
 Lemma fact_correct_first_try:
   forall n, n >= 0 ->
             valid_hoare_triple (fun env => env "n" = n) (factorielle n) (fun env => env "res" = Zfact n).
@@ -123,7 +166,7 @@ Proof.
     rewrite Zfact_neg. 2: lia. lia.
   - unfold update_state; simpl. auto.
 Qed.
-*)
+
 
 Fixpoint vars_affected (s: stmt) : list var :=
   match s with
