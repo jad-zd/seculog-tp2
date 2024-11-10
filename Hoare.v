@@ -195,13 +195,30 @@ Fixpoint wp (s: stmt) (Q: pred) : pred :=
             /\ (~ eval_condP env' c -> II env' -> Q env')
   end.
 
+Require Import Decidable.
+
 Lemma bigstep_vars_affected:
   forall env1 s env2,
   bigstep env1 s env2
   -> forall x, ~ In x (vars_affected s)
   -> env1 x = env2 x.
 Proof.
-Admitted.
+  intros. induction H.
+  - reflexivity.
+  - simpl in H0. unfold update_state. destruct (var_eq x x0) eqn:E.
+    * apply not_or in H0. rewrite e0 in H0. exfalso. tauto.
+    * reflexivity.
+  - simpl in H0. rewrite in_app_iff in H0. apply not_or in H0. destruct H0.
+    apply IHbigstep2 in H2. apply IHbigstep1 in H0. rewrite <- H0 in H2. apply H2.
+  - simpl in H0. rewrite in_app_iff in H0. apply not_or in H0. destruct H0.
+    apply IHbigstep in H0. apply H0.
+  - simpl in H0. rewrite in_app_iff in H0. apply not_or in H0. destruct H0.
+    apply IHbigstep in H2. apply H2.
+  - reflexivity.
+  - simpl in H0. eapply eq_trans.
+    * apply IHbigstep1. apply H0.
+    * apply IHbigstep2. simpl. apply H0.
+Qed.
 
 Lemma auto_hoare_while:
   forall
@@ -222,20 +239,66 @@ Lemma auto_hoare_while:
 Proof.
   intros c I s Q IHs env1 env2 Itrue CondTrue CondFalse Heval.
   dependent induction Heval.
-(*
-  clear IHHeval1.
-  eapply IHHeval2 with (s0:=s) (I0:=I) (c0:=c); auto.
- *)
-Admitted.
+  - eapply CondFalse.
+    * intros. reflexivity.
+    * apply H.
+    * apply Itrue.
+  - clear IHHeval1. eapply IHHeval2 with (s0:=s) (I0:=I) (c0:=c); auto.
+    * eapply IHs.
+      + apply CondTrue.
+        -- intros. reflexivity.
+        -- apply H.
+        -- apply Itrue.
+      + apply Heval1.
+    * intros. eapply CondTrue.
+      + intros. assert (env x = env' x). eapply bigstep_vars_affected.
+        -- apply Heval1.
+        -- apply H3.
+        -- apply H0 in H3. rewrite <- H4 in H3. apply H3.
+      + apply H1.
+      + apply H2.
+    * intros. eapply CondFalse.
+      + intros. assert (env x = env' x). eapply bigstep_vars_affected.
+        -- apply Heval1.
+        -- apply H3.
+        -- apply H0 in H3. rewrite <- H4 in H3. apply H3.
+      + apply H1.
+      + apply H2.
+Qed.           
+  
 
 Theorem auto_hoare: forall s Q, valid_hoare_triple (wp s Q) s Q.
 Proof.
-Admitted.
+  intros. dependent induction s.
+  - apply hoare_skip.
+  - apply hoare_assign.
+  - eapply hoare_seq.
+    * apply IHs1.
+    * apply IHs2.
+  - unfold valid_hoare_triple. intros. induction H. inv H0.
+    * eapply IHs1.
+      + apply H in H7. apply H7.
+      + apply H8.
+    * eapply IHs2.
+      + apply H1 in H7. apply H7.
+      + apply H8.
+  - unfold valid_hoare_triple. intros. destruct H. eapply auto_hoare_while.
+    * apply IHs.
+    * apply H.
+    * intros. apply H1 in H3.
+      + apply H3.
+      + apply H2.
+      + apply H4.
+    * apply H1.
+    * apply H0.
+Qed.
 
 Lemma auto_hoare':
   forall (P: pred) s Q,
   (forall env, P env -> wp s Q env)
   -> valid_hoare_triple P s Q.
 Proof.
-Admitted.
-
+  intros. eapply hoare_strengthen_pre.
+  - apply auto_hoare.
+  - apply H.
+Qed.
