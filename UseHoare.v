@@ -174,7 +174,7 @@ Example div_mod a b :=
       (Assign "y" (Const 0))
       (While
         (Le (Const b) (Var "x"))
-           (fun env => True)
+           (fun env =>  b * (env "y") + (env "x") = a)
         (Seq
           (Assign "x" (Sub (Var "x") (Const b)))
           (Assign "y" (Add (Var "y") (Const 1)))
@@ -188,7 +188,17 @@ Theorem div_mod_correct a b:
     (div_mod a b)
     (fun env => b * env "y" + env "x" = a /\ env "x" < b).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split.
+  - lia.
+  - intros. split.
+    * intros. rewrite <- H2. lia.
+    * intros. split.
+      + lia.
+      + lia.
+Qed.
 
 Definition parity x :=
   Seq
@@ -197,7 +207,7 @@ Definition parity x :=
       (If (Lt (Const 0) (Var "x")) Skip (Assign "x" (Sub (Const 0) (Var "x"))))
       (While
         (Le (Const 2) (Var "x"))
-           (fun env => True)
+           (fun env => (Z.even (env "x") = Z.even x) /\ 0 <= env "x" )
         (Assign "x" (Sub (Var "x") (Const 2)))
       )
     ).
@@ -217,7 +227,41 @@ Theorem parity_correct x:
        end
     ).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split; intros.
+  - split.
+    * split.
+      + reflexivity.
+      + lia.
+    * intros. split; intros.
+      + split.
+        -- destruct H3. rewrite <- H3. rewrite Z.even_sub. simpl. destruct (Z.even (env' "x")); auto.
+        -- destruct H2; lia.
+      + destruct (env' "x"); destruct H3.
+        -- simpl in H3. rewrite <- H3. reflexivity.
+        -- destruct p.
+          ** lia.
+          ** lia.
+          ** simpl in H3. rewrite <- H3. reflexivity.
+        -- lia.
+  - split.
+    * split.
+      + apply Z.even_opp.
+      + lia.
+    * intros. split; intros.
+      + split.
+        --  destruct H3. rewrite <- H3. rewrite Z.even_sub. simpl. destruct (Z.even (env' "x")); auto.
+        -- destruct H2; lia.
+      + destruct H3. destruct (env' "x").
+        -- simpl in H3. rewrite <- H3. reflexivity.
+        -- destruct p.
+          ** lia.
+          ** lia.
+          ** simpl in H3. rewrite <- H3. reflexivity.
+        -- lia.
+Qed.
 
 Definition sqrt x :=
   Seq
@@ -226,7 +270,7 @@ Definition sqrt x :=
       (Assign "z" (Const 0))
       (While
         (Le (Mul (Add (Var "z") (Const 1)) (Add (Var "z") (Const 1))) (Var "x"))
-           (fun env => True)
+           (fun env => env "z" * env "z" <= x)
         (Assign "z" ((Add (Var "z") (Const 1))))
       )
     ).
@@ -241,7 +285,19 @@ Theorem sqrt_correct x:
         /\ x < (env "z" + 1) * (env "z" + 1)
       ).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split.
+  - lia.
+  - intros. assert (env' "x" = x).
+    * specialize (H1 "x"). simpl in H1. symmetry. apply H1. intro. destruct H2.
+      + congruence.
+      + congruence.
+    * split.
+      + lia.
+      + lia.
+Qed.
 
 Definition square1 x :=
   Seq
@@ -252,7 +308,7 @@ Definition square1 x :=
         (Assign "z" (Const 0))
         (While
           (Not (Eq (Var "y") (Const 0)))
-             (fun env => True)
+             (fun env => x * x = x * (env "y") + (env "z"))
           (Seq
             (Assign "z" (Add (Var "z") (Var "x")))
             (Assign "y" (Sub (Var "y") (Const 1)))
@@ -267,7 +323,19 @@ Theorem square1_correct x:
     (square1 x)
     (fun env => env "z" = x * x).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split.
+  - lia.
+  - intros. assert (x = env' "x").
+    * specialize H0 with "x". simpl in H0. apply H0. intro. destruct H1.
+      + congruence.
+      + destruct H1.
+        -- congruence.
+        -- congruence.
+    * rewrite H1. split; intros; lia.
+Qed.   
 
 Definition square2 x :=
   Seq
@@ -278,7 +346,7 @@ Definition square2 x :=
         (Assign "z" (Const 0))
         (While
           (Not (Eq (Var "y") (Var "x")))
-             (fun env => True)
+             (fun env => (env "z") = (env "y") * x)
           (Seq
             (Assign "z" (Add (Var "z") (Var "x")))
             (Assign "y" (Add (Var "y") (Const 1)))
@@ -293,7 +361,19 @@ Theorem square2_correct x:
     (square2 x)
     (fun env => env "z" = x * x).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split.
+  - lia.
+  - intros. assert (x = env' "x").
+    * specialize H0 with "x". simpl in H0. apply H0. intro. destruct H1.
+      + congruence.
+      + destruct H1.
+        -- congruence.
+        -- congruence.
+    * rewrite H1. split; intros; lia.
+Qed. (* Note: c'est exactement la même preuve que `square1_correct` *)
 
 Check Zfib.
 
@@ -306,7 +386,7 @@ Definition Fib n :=
         (Assign "z" (Const 1))
         (While
           (Not (Eq (Var "x") (Const (1 + n))))
-          (fun env => True)
+          (fun env => env "y" = Zfib (env "x" - 1) /\ (env "z") = Zfib (env "x") /\ 0 < (env "x"))
           (Seq
             (Assign "t" (Var "z"))
             (Seq
@@ -330,5 +410,27 @@ Theorem fib_correct n:
   0 <= n
   -> valid_hoare_triple (fun env => True) (Fib n) (fun env => env "y" = Zfib n).
 Proof.
-Admitted.
+  intros.
+  apply auto_hoare'; simpl.
+  unfold update_state; simpl; intros.
+  split.
+  - split.
+    * assert (1 - 1 = 0).
+      + lia.
+      + rewrite H1. unfold Zfib. simpl. reflexivity.
+    * split.
+      + unfold Zfib. simpl. reflexivity.
+      + lia.
+  - intros. split; intros.
+    * split. 
+      + assert (env' "x" + 1 - 1 = env' "x").
+        -- lia.
+        -- rewrite H4. destruct H3. destruct H5. apply H5.
+      + rewrite (Z.add_comm (env' "x") 1). destruct H3. destruct H4. rewrite H3. rewrite H4. rewrite <- Zfib_eqn; lia.
+    * intros. destruct H3. destruct H4. assert (env' "x" = 1 + n).
+      + lia.
+      + rewrite H6 in H3. assert (1 + n - 1 = n).
+        -- lia.
+        -- rewrite H7 in H3. apply H3.
+Qed.
 
