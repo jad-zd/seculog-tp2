@@ -15,7 +15,7 @@
     {
       packages.x86_64-linux.default = pkgs.mkShell {
         buildInputs = with pkgs; [
-          coq
+          coq_8_12
           coqPackages.coqide
         ];
 
