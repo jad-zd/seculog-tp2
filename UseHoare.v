@@ -26,7 +26,10 @@ Proof.
   intros A B.
   apply auto_hoare'; simpl.
   unfold update_state; simpl.
-Admitted.
+  intros. destruct H. split.
+  - apply H0.
+  - apply H.
+Qed.
 
 Definition slow_assign : stmt :=
   While
@@ -43,7 +46,11 @@ Proof.
   intros.
   apply auto_hoare'; simpl.
   unfold update_state; simpl.
-Admitted.
+  intros. split.
+  - lia.
+  - intros. lia.
+Qed.
+
 
 Definition dummy_sum (x y: Z) :=
   Seq
@@ -52,7 +59,7 @@ Definition dummy_sum (x y: Z) :=
       (Assign "y" (Const y))
       (While
         (Lt (Const 0) (Var "y"))
-         (fun env => True)
+         (fun env => eval_expr env (Var "y") >= 0 /\ (eval_expr env (Var "x")) + (eval_expr env (Var "y")) = x + y)
         (Seq
           (Assign "x" (Add (Var "x") (Const 1)))
           (Assign "y" (Sub (Var "y") (Const 1)))
@@ -70,12 +77,17 @@ Proof.
   intros.
   apply auto_hoare'.
   simpl; unfold update_state; simpl; intros.
-Admitted.
+  split.
+  - lia.
+  - intros. split.
+    * lia.
+    * intros. lia.
+Qed.
 
 Definition gcd (x y : Z) :=
   While
     (Not (Eq (Var "x") (Var "y")))
-       (fun env => True)
+       (fun env => Z.gcd (env "x") (env "y") = Z.gcd x y)
     (If
       (Lt (Var "x") (Var "y"))
       (Assign "y" (Sub (Var "y") (Var "x")))
@@ -95,7 +107,20 @@ Theorem gcd_correct:
 Proof.
   intros. apply auto_hoare'.
   simpl. unfold update_state; simpl.
-Admitted.
+  intros. split.
+    - destruct H. rewrite H. rewrite H0. reflexivity.
+    - intros. split.
+      * intros. split.
+        + intro. rewrite <- H2. apply Z.gcd_sub_diag_r.
+        + intros. rewrite Z.gcd_comm. rewrite <- H2.
+          rewrite (Z.gcd_comm (env' "x") (env' "y")).
+          apply Z.gcd_sub_diag_r.
+      * intros. split.
+        + lia.
+        + rewrite <- H2. assert (env' "x" = env' "y").
+          -- lia.
+          -- rewrite <- H3. apply Z.gcd_diag.
+Qed.  
 
 Definition factorielle n :=
   Seq
@@ -128,7 +153,16 @@ Proof.
   intros.
   apply auto_hoare'; simpl.
   unfold update_state; simpl; intros.
-Admitted.
+  split.
+  - rewrite H0. lia.
+  - intros. split.
+    * intros. rewrite <- Z.mul_assoc. rewrite <- Zfact_pos.
+      + apply H3.
+      + apply H2.
+    * intros. rewrite (Zfact_neg (env' "n")) in H3.
+      + lia.
+      + lia.
+Qed.
 
 (* On définit la condition [a <= b] comme étant [a = b || a < b] *)
 Definition Le a b := Or (Eq a b) (Lt a b).
